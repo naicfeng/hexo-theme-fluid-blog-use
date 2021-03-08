@@ -29,9 +29,9 @@ module.exports = (hexo) => {
 
 const lazyProcess = (htmlContent, loadingImage) => {
   return htmlContent.replace(/<img[^>]+?src="(.*?)"[^>]*?>/gims, (str, p1) => {
-    if (/srcset=/i.test(str)) {
+    if (/data-src=/i.test(str)) {
       return str;
     }
-    return str.replace(p1, `${p1}" srcset="${loadingImage}`);
+    return str.replace(p1, `${loadingImage}" class="lazyload" data-src="${p1}`);
   });
 };

@@ -15,6 +15,7 @@ page.banner_mask_alpha = theme.post.banner_mask_alpha
           <article class="post-content mx-auto">
             <!-- SEO header -->
             <h1 style="display: none"><%= page.subtitle || page.title %></h1>
+	    <time updated datetime="<%= full_date(page.updated, 'YYYY-MM-DD HH:mm') %>"></time>
             <% if(theme.post.updated && theme.post.updated.enable) { %>
               <p class="note note-info">
                 <% if (theme.post.updated.relative) { %>
@@ -48,7 +49,7 @@ page.banner_mask_alpha = theme.post.banner_mask_alpha
                 <% } %>
               </div>
               <% if(theme.post.copyright.enable && theme.post.copyright.content && page.copyright !== false) { %>
-                <p class="note note-warning">
+                <p class="note note-info">
                   <% if (typeof page.copyright === 'string' && page.copyright !== '') { %>
                     <%- page.copyright %>
                   <% } else { %>

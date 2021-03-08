@@ -26,6 +26,7 @@
     });
     images.map((item) => io.observe(item));
   } else {
+
     // eslint-disable-next-line no-inner-declarations
     function elementInViewport(el) {
       var rect = el.getBoundingClientRect();

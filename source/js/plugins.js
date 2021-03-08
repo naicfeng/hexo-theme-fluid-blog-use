@@ -162,7 +162,7 @@ Fluid.plugins = {
       if (img.complete) { img.onload(); }
     }
 
-    var images = $('main img:not([srcset])');
+    var images = $('main img:not([data-src])');
     var notLazyImages = [];
     for (const img of images) {
       if (!img.srcset) {
