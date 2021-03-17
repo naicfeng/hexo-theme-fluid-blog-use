@@ -1,11 +1,15 @@
-/* global Fluid, Debouncer */
+/* global Fluid, CONFIG, Debouncer */
 
 Fluid.utils = {
 
   listenScroll: function(callback) {
-    const dbc = new Debouncer(callback);
-    window.addEventListener('scroll', dbc, false);
-    dbc.handleEvent();
+    if ('Debouncer' in window) {
+      var dbc = new Debouncer(callback);
+      window.addEventListener('scroll', dbc, false);
+      dbc.handleEvent();
+    } else {
+      window.addEventListener('scroll', callback, false);
+    }
   },
 
   scrollToElement: function(target, offset) {
@@ -18,49 +22,73 @@ Fluid.utils = {
     }
   },
 
-  waitElementVisible: function(targetId, callback) {
+  waitElementVisible: function(target, callback, heightFactor) {
     var runningOnBrowser = typeof window !== 'undefined';
     var isBot = (runningOnBrowser && !('onscroll' in window)) || (typeof navigator !== 'undefined'
         && /(gle|ing|ro|msn)bot|crawl|spider|yand|duckgo/i.test(navigator.userAgent));
     var supportsIntersectionObserver = 'IntersectionObserver' in window;
-    var attachEvent = 'attachEvent' in window;
-    var addEventListener = 'addEventListener' in window;
-    if (!isBot && runningOnBrowser && (attachEvent || addEventListener)) {
-      var _scroll = function() {
-        var _callback = function() {
-          var _target = document.getElementById(targetId);
-          //滚动条高度+视窗高度 = 可见区域底部高度
-          var visibleBottom = window.scrollY + document.documentElement.clientHeight;
-          //可见区域顶部高度
-          var visibleTop = window.scrollY;
-          var centerY = _target.offsetTop + (_target.offsetHeight / 2);
-          if (centerY > visibleTop && centerY < visibleBottom) {
-            if (attachEvent)document.detachEvent('scroll', _callback);
-            if (addEventListener)document.removeEventListener('scroll', _callback);
-            callback && callback();
-          }
-        };
-        if (attachEvent)document.attachEvent('scroll', _callback);
-        if (addEventListener)document.addEventListener('scroll', _callback);
-      };
-      if (supportsIntersectionObserver) {
-        var io = new IntersectionObserver(function(entries, ob) {
-          //如果失败，回退到scroll方式
-          if (entries[0].intersectionRect.x <= 0) { _scroll(); ob.disconnect(); return; }
-          if (entries[0].isIntersecting) {
-            callback && callback();
-            ob.disconnect();
-          }
-        }, {
-          threshold : [0],
-          rootMargin: (window.innerHeight || document.documentElement.clientHeight) + 'px'
-        });
-        io.observe(document.getElementById(targetId));
-      } else {
-        _scroll();
-      }
-    } else {
+    if (!runningOnBrowser || isBot) {
       callback && callback();
+      return;
+    }
+
+    var _target;
+    if (typeof target === 'string') {
+      _target = document.getElementById(target);
+    } else {
+      _target = target;
+    }
+
+    var _heightFactor = heightFactor || 2;
+
+    var _elementInViewport = function(el) {
+      var rect = el.getBoundingClientRect();
+      var height = window.innerHeight || document.documentElement.clientHeight;
+      var top = rect.top;
+      return (top >= 0 && top <= height * (_heightFactor + 1))
+          || (top <= 0 && top >= -(height * _heightFactor) - rect.height);
+    };
+
+    if (_elementInViewport(_target)) {
+      callback && callback();
+      return;
+    }
+
+    var _listenScroll = function() {
+      var _callback = function() {
+        if (_elementInViewport(_target)) {
+          window.removeEventListener('scroll', _callback);
+          callback && callback();
+        }
+      };
+      window.addEventListener('scroll', _callback);
+    };
+
+    if (supportsIntersectionObserver) {
+      var io = new IntersectionObserver(function(entries, ob) {
+        if (entries[0].intersectionRect.x <= 0) {
+          if ('Debouncer' in window) {
+            var dbc = new Debouncer(_listenScroll);
+            dbc.handleEvent();
+          } else {
+            _listenScroll();
+          }
+        } else if (entries[0].isIntersecting) {
+          callback && callback();
+        }
+        ob.disconnect();
+      }, {
+        threshold : [0],
+        rootMargin: (window.innerHeight || document.documentElement.clientHeight) + 'px'
+      });
+      io.observe(_target);
+    } else {
+      if ('Debouncer' in window) {
+        var dbc = new Debouncer(_listenScroll);
+        dbc.handleEvent();
+      } else {
+        _listenScroll();
+      }
     }
   },
 
@@ -68,7 +96,9 @@ Fluid.utils = {
     var runningOnBrowser = typeof window !== 'undefined';
     var isBot = (runningOnBrowser && !('onscroll' in window)) || (typeof navigator !== 'undefined'
     && /(gle|ing|ro|msn)bot|crawl|spider|yand|duckgo/i.test(navigator.userAgent));
+
     if (!runningOnBrowser || isBot) {
+      callback && callback();
       return;
     }
 
@@ -122,6 +152,19 @@ Fluid.utils = {
     || document.getElementsByTagName('head')[0]
     || document.head || document.documentElement;
     e.parentNode.insertBefore(l, e);
+  },
+
+  lazyComments: function(eleId, loadFunc) {
+    var ele = document.querySelector('#comments[lazyload]');
+    if (ele) {
+      var callback = function() {
+        loadFunc && loadFunc();
+        ele.removeAttribute('lazyload');
+      };
+      this.waitElementVisible(eleId, callback, CONFIG.lazyload.offset_factor);
+    } else {
+      loadFunc && loadFunc();
+    }
   }
 
 };
