@@ -22,7 +22,7 @@ Fluid.utils = {
     }
   },
 
-  waitElementVisible: function(target, callback, heightFactor) {
+  waitElementVisible: function(selectorsOrElement, callback, heightFactor) {
     var runningOnBrowser = typeof window !== 'undefined';
     var isBot = (runningOnBrowser && !('onscroll' in window)) || (typeof navigator !== 'undefined'
         && /(gle|ing|ro|msn)bot|crawl|spider|yand|duckgo/i.test(navigator.userAgent));
@@ -32,11 +32,11 @@ Fluid.utils = {
       return;
     }
 
-    var _target;
-    if (typeof target === 'string') {
-      _target = document.getElementById(target);
+    var target;
+    if (typeof selectorsOrElement === 'string') {
+      target = document.querySelector(selectorsOrElement);
     } else {
-      _target = target;
+      target = selectorsOrElement;
     }
 
     var _heightFactor = heightFactor || 2;
@@ -49,14 +49,14 @@ Fluid.utils = {
           || (top <= 0 && top >= -(height * _heightFactor) - rect.height);
     };
 
-    if (_elementInViewport(_target)) {
+    if (_elementInViewport(target)) {
       callback && callback();
       return;
     }
 
     var _listenScroll = function() {
       var _callback = function() {
-        if (_elementInViewport(_target)) {
+        if (_elementInViewport(target)) {
           window.removeEventListener('scroll', _callback);
           callback && callback();
         }
@@ -81,7 +81,7 @@ Fluid.utils = {
         threshold : [0],
         rootMargin: (window.innerHeight || document.documentElement.clientHeight) + 'px'
       });
-      io.observe(_target);
+      io.observe(target);
     } else {
       if ('Debouncer' in window) {
         var dbc = new Debouncer(_listenScroll);
@@ -154,14 +154,14 @@ Fluid.utils = {
     e.parentNode.insertBefore(l, e);
   },
 
-  lazyComments: function(eleId, loadFunc) {
+  loadComments: function(selectors, loadFunc) {
     var ele = document.querySelector('#comments[lazyload]');
     if (ele) {
       var callback = function() {
         loadFunc && loadFunc();
         ele.removeAttribute('lazyload');
       };
-      this.waitElementVisible(eleId, callback, CONFIG.lazyload.offset_factor);
+      this.waitElementVisible(selectors, callback, CONFIG.lazyload.offset_factor);
     } else {
       loadFunc && loadFunc();
     }
